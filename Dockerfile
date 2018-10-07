@@ -10,7 +10,6 @@ RUN go get github.com/spf13/viper
 RUN go get github.com/gin-gonic/gin
 RUN go get github.com/jinzhu/gorm/dialects/mssql
 RUN go get github.com/jinzhu/gorm
-RUN go get github.com/jinzhu/gorm
 RUN go get github.com/satori/go.uuid
 
 # Build the mysyslog command inside the container.
@@ -23,6 +22,8 @@ RUN ls -lisa
 # Run the outyet command by default when the container starts.
 #COPY ./mysyslog /go/bin/
 RUN chmod a+x /go/src/github.com/gcristofol/showtimes/showtimes
+
+CMD ["./showtimes"]
 
 # Document that the service listens on port 8080.
 EXPOSE 8080

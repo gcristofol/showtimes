@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net/http"
 
@@ -10,13 +11,20 @@ import (
 	"github.com/satori/go.uuid"
 )
 
-var db *gorm.DB
+var (
+	db *gorm.DB
+)
 
 func init() {
 
 	//get config
 	cnf := NewConfig()
 	fmt.Printf("Server started %v - %v\n", cnf.DatabaseType, cnf.ConnectionString)
+
+	//setup log
+	flag.Parse()
+	NewLog(cnf.LogFile)
+	Log.Println(fmt.Sprintf("Server started %v - %v\n", cnf.DatabaseType, cnf.ConnectionString))
 
 	//open a onnection
 	var err error
