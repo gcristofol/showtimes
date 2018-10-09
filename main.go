@@ -40,7 +40,10 @@ func main() {
 	v1 := router.Group("/api/v2")
 	{
 		v1.GET("/ping", fetchPing)
-		v1.GET("/cinema-chains", fetchAllCinemaChains)
+		v1.GET("/cinema-chain", fetchAllCinemaChains)
+		v1.GET("/cinema-chain/:cinemachain/site", fetchSitesByCinemaChain)
+		v1.GET("/cinema-chain/:cinemachain/site/:site", fetchShowtimesBySite)
+		v1.GET("/site/:site", fetchShowtimesBySite)
 	}
 	router.Run()
 }
@@ -62,11 +65,36 @@ type (
 	}
 
 	joinResults struct {
-		Name             string `json:"name" gorm:"column:Name"`
-		SalesChannel     string `json:"sales-channel" gorm:"column:SalesChannel"`
-		AllowTicketTypes bool   `json:"allow-ticket-types" gorm:"column:AllowTicketTypes"`
+		Name             string    `json:"name" gorm:"column:Name"`
+		CinemaChainID    uuid.UUID `json:"cinema-chain-id" gorm:"column:Id"`
+		SalesChannel     string    `json:"sales-channel" gorm:"column:SalesChannel"`
+		AllowTicketTypes bool      `json:"allow-ticket-types" gorm:"column:AllowTicketTypes"`
+	}
+
+	site struct {
+		ID            uuid.UUID `json:"id" gorm:"column:Id"`
+		CinemaChainID uuid.UUID `json:"cinema-chain-id" gorm:"column:CinemaChainId"`
+		Name          string    `json:"name" gorm:"column:Name"`
+		Status        string    `json:"status" gorm:"column:Status"`
+	}
+
+	showtime struct {
+		ID                  uuid.UUID `json:"id" gorm:"column:Id"`
+		SeatsAvailable      string    `json:"name" gorm:"column:Name"`
+		StartTime           string    `json:"start-time" gorm:"column:StartTime"`
+		ScreenName          string    `json:"screen-name" gorm:"column:ScreenName"`
+		AttributeShortNames string    `json:"attribute-short-names" gorm:"column:AttributeShortNames"`
+		SalesChannels       string    `json:"sales-channels" gorm:"column:SalesChannels"`
 	}
 )
+
+func (showtime) TableName() string {
+	return "Showtime"
+}
+
+func (site) TableName() string {
+	return "Site"
+}
 
 func (cinemaChain) TableName() string {
 	return "CinemaChain"
@@ -84,10 +112,38 @@ func fetchPing(c *gin.Context) {
 
 func fetchAllCinemaChains(c *gin.Context) {
 	var res []joinResults
-	db.Table("CinemaChainConfiguration").Select("CinemaChainConfiguration.SalesChannel, CinemaChain.Name").Joins("LEFT JOIN CinemaChain ON CinemaChain.CinemaChainConfigurationId = CinemaChainConfiguration.Id").Scan(&res)
+	db.Table("CinemaChainConfiguration").Select("CinemaChainConfiguration.SalesChannel, CinemaChain.Name, CinemaChain.Id").Joins("LEFT JOIN CinemaChain ON CinemaChain.CinemaChainConfigurationId = CinemaChainConfiguration.Id").Scan(&res)
 
 	if len(res) <= 0 {
-		c.JSON(http.StatusNotFound, gin.H{"status": http.StatusNotFound, "message": "No todo found!"})
+		c.JSON(http.StatusNotFound, gin.H{"status": http.StatusNotFound, "message": "No cinemachains found!"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": http.StatusOK, "data": res})
+}
+
+func fetchSitesByCinemaChain(c *gin.Context) {
+	cinemachain := c.Param("cinemachain")
+
+	var res []site
+	db.Where("CinemaChainId = ?", cinemachain).Find(&res)
+
+	if len(res) <= 0 {
+		c.JSON(http.StatusNotFound, gin.H{"status": http.StatusNotFound, "message": "No sites found!"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": http.StatusOK, "data": res})
+}
+
+func fetchShowtimesBySite(c *gin.Context) {
+	site := c.Param("site")
+
+	var res []showtime
+	db.Where("SiteId = ?", site).Find(&res)
+
+	if len(res) <= 0 {
+		c.JSON(http.StatusNotFound, gin.H{"status": http.StatusNotFound, "message": "No showtimes found!"})
 		return
 	}
 
